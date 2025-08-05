@@ -7,6 +7,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import TodoItem from './TodoItem';
 import { showSuccess, showError } from '@/utils/toast';
 import { Paperclip, Mic, Link, ListFilter, Search } from "lucide-react";
+import { format } from 'date-fns'; // Import format from date-fns
 
 interface Todo {
   id: string;
@@ -27,14 +28,23 @@ const TodoList: React.FC = () => {
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState<string>(''); // New state for search
-  const [sortOrder, setSortOrder] = useState<SortOrder>('none'); // New state for sort
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('none');
+  const [currentTime, setCurrentTime] = useState(new Date()); // New state for current time
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     localStorage.setItem('todos', JSON.stringify(todos));
   }, [todos]);
+
+  // Effect to update current time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer); // Cleanup on unmount
+  }, []);
 
   const addTodo = () => {
     if (newTodoText.trim() === '') {
@@ -154,6 +164,9 @@ const TodoList: React.FC = () => {
     <Card className="w-full max-w-md mx-auto shadow-lg">
       <CardHeader>
         <CardTitle className="text-3xl text-center">My To-Do List</CardTitle>
+        <p className="text-sm text-center text-muted-foreground mt-1">
+          {format(currentTime, "EEEE, MMM dd, yyyy HH:mm:ss")}
+        </p>
       </CardHeader>
       <CardContent>
         {/* Search Input */}
@@ -184,7 +197,7 @@ const TodoList: React.FC = () => {
           <Button onClick={addTodo}>Add</Button>
         </div>
 
-        <div className="flex justify-between items-center mb-6"> {/* Adjusted for sort button */}
+        <div className="flex justify-between items-center mb-6">
           <div className="flex space-x-2">
             <Button variant="outline" size="sm" onClick={() => {
               setIsFileDialogOpen(true);
