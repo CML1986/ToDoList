@@ -1,18 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import TodoItem from './TodoItem';
 import { showSuccess, showError } from '@/utils/toast';
-import { Paperclip, Mic, Link } from "lucide-react";
+import { Paperclip, Mic, Link, ListFilter, Search } from "lucide-react";
 
 interface Todo {
   id: string;
   text: string;
   completed: boolean;
-  dueDate?: string; // Added dueDate
+  dueDate?: string;
 }
+
+type SortOrder = 'none' | 'alphabet-asc' | 'alphabet-desc' | 'dueDate-asc' | 'dueDate-desc';
 
 const TodoList: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>(() => {
@@ -24,6 +27,8 @@ const TodoList: React.FC = () => {
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>(''); // New state for search
+  const [sortOrder, setSortOrder] = useState<SortOrder>('none'); // New state for sort
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,7 +45,7 @@ const TodoList: React.FC = () => {
       id: Date.now().toString(),
       text: newTodoText.trim(),
       completed: false,
-      dueDate: undefined, // New todos start without a due date
+      dueDate: undefined,
     };
     setTodos([...todos, newTodo]);
     setNewTodoText('');
@@ -76,7 +81,7 @@ const TodoList: React.FC = () => {
       showSuccess(`Selected file: ${files[0].name}`);
       console.log("Selected file:", files[0]);
     }
-    setIsFileDialogOpen(false); // Close dialog after selection
+    setIsFileDialogOpen(false);
   };
 
   const handleOpenLink = () => {
@@ -85,7 +90,6 @@ const TodoList: React.FC = () => {
       return;
     }
     try {
-      // Basic URL validation and ensuring protocol
       let url = linkUrl.trim();
       if (!/^https?:\/\//i.test(url)) {
         url = 'http://' + url;
@@ -100,12 +104,70 @@ const TodoList: React.FC = () => {
     }
   };
 
+  // Filter and Sort Logic
+  const filteredAndSortedTodos = useMemo(() => {
+    let currentTodos = [...todos];
+
+    // 1. Filter
+    if (searchTerm) {
+      currentTodos = currentTodos.filter(todo =>
+        todo.text.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // 2. Sort
+    switch (sortOrder) {
+      case 'alphabet-asc':
+        currentTodos.sort((a, b) => a.text.localeCompare(b.text));
+        break;
+      case 'alphabet-desc':
+        currentTodos.sort((a, b) => b.text.localeCompare(a.text));
+        break;
+      case 'dueDate-asc':
+        currentTodos.sort((a, b) => {
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1; // Undefined due dates go to the end
+          if (!b.dueDate) return -1;
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        });
+        break;
+      case 'dueDate-desc':
+        currentTodos.sort((a, b) => {
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+        });
+        break;
+      case 'none':
+      default:
+        // Default to creation order (which is implicit from useState initial load)
+        // For consistent behavior, we might want to sort by ID if 'none' means original creation order
+        currentTodos.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        break;
+    }
+    return currentTodos;
+  }, [todos, searchTerm, sortOrder]);
+
+
   return (
     <Card className="w-full max-w-md mx-auto shadow-lg">
       <CardHeader>
         <CardTitle className="text-3xl text-center">My To-Do List</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Search Input */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search tasks..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-4"
+          />
+        </div>
+
         <div className="flex space-x-2 mb-4">
           <Input
             type="text"
@@ -122,35 +184,64 @@ const TodoList: React.FC = () => {
           <Button onClick={addTodo}>Add</Button>
         </div>
 
-        <div className="flex justify-center space-x-2 mb-6">
-          <Button variant="outline" size="sm" onClick={() => {
-            setIsFileDialogOpen(true);
-            // Programmatically click the hidden file input
-            if (fileInputRef.current) {
-              fileInputRef.current.click();
-            }
-          }}>
-            <Paperclip className="h-4 w-4 mr-1" /> Attach File
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setIsAudioDialogOpen(true)}>
-            <Mic className="h-4 w-4 mr-1" /> Audio Note
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setIsLinkDialogOpen(true)}>
-            <Link className="h-4 w-4 mr-1" /> Link Web
-          </Button>
+        <div className="flex justify-between items-center mb-6"> {/* Adjusted for sort button */}
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" onClick={() => {
+              setIsFileDialogOpen(true);
+              if (fileInputRef.current) {
+                fileInputRef.current.click();
+              }
+            }}>
+              <Paperclip className="h-4 w-4 mr-1" /> Attach File
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsAudioDialogOpen(true)}>
+              <Mic className="h-4 w-4 mr-1" /> Audio Note
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsLinkDialogOpen(true)}>
+              <Link className="h-4 w-4 mr-1" /> Link Web
+            </Button>
+          </div>
+
+          {/* Sort Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="ml-2">
+                <ListFilter className="h-4 w-4 mr-1" /> Sort
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSortOrder('none')}>
+                Default Order
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSortOrder('alphabet-asc')}>
+                Alphabetical (A-Z)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortOrder('alphabet-desc')}>
+                Alphabetical (Z-A)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSortOrder('dueDate-asc')}>
+                Due Date (Earliest First)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortOrder('dueDate-desc')}>
+                Due Date (Latest First)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="space-y-2">
-          {todos.length === 0 ? (
-            <p className="text-center text-muted-foreground">No tasks yet! Add one above.</p>
+          {filteredAndSortedTodos.length === 0 ? (
+            <p className="text-center text-muted-foreground">No tasks found.</p>
           ) : (
-            todos.map((todo) => (
+            filteredAndSortedTodos.map((todo) => (
               <TodoItem
                 key={todo.id}
                 todo={todo}
                 onToggleComplete={toggleComplete}
                 onDelete={deleteTodo}
-                onUpdateDueDate={updateTodoDueDate} // Pass the new update function
+                onUpdateDueDate={updateTodoDueDate}
               />
             ))
           )}
@@ -163,8 +254,8 @@ const TodoList: React.FC = () => {
         ref={fileInputRef}
         onChange={handleFileSelect}
         className="hidden"
-        multiple={false} // Or true if you want multiple files
-        accept="*/*" // Allows all file types
+        multiple={false}
+        accept="*/*"
       />
 
       {/* Audio Note Dialog */}

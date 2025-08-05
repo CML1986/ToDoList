@@ -23,6 +23,10 @@ const TodoItem: React.FC<TodoItemProps> = ({ todo, onToggleComplete, onDelete, o
     onUpdateDueDate(todo.id, date ? date.toISOString() : undefined);
   };
 
+  // Determine if dueDate has a time component (e.g., not just YYYY-MM-DD)
+  const hasTime = todo.dueDate && (new Date(todo.dueDate).getHours() !== 0 || new Date(todo.dueDate).getMinutes() !== 0 || new Date(todo.dueDate).getSeconds() !== 0);
+  const dateFormat = hasTime ? "MMM dd, yyyy p" : "MMM dd, yyyy"; // p for time (e.g., 10:30 AM)
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border-b last:border-b-0 gap-2">
       <div className="flex items-center gap-3 flex-grow">
@@ -31,23 +35,25 @@ const TodoItem: React.FC<TodoItemProps> = ({ todo, onToggleComplete, onDelete, o
           checked={todo.completed}
           onCheckedChange={() => onToggleComplete(todo.id)}
         />
-        <label
-          htmlFor={`todo-${todo.id}`}
-          className={cn(
-            "text-lg font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-            todo.completed ? "line-through text-muted-foreground" : ""
+        <div className="flex flex-col"> {/* New div for text and date */}
+          <label
+            htmlFor={`todo-${todo.id}`}
+            className={cn(
+              "text-lg font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+              todo.completed ? "line-through text-muted-foreground" : ""
+            )}
+          >
+            {todo.text}
+          </label>
+          {todo.dueDate && (
+            <span className="text-xs text-muted-foreground mt-0.5"> {/* Smaller font for date */}
+              <CalendarIcon className="inline-block h-3 w-3 mr-1 -mt-0.5" />
+              {format(new Date(todo.dueDate), dateFormat)}
+            </span>
           )}
-        >
-          {todo.text}
-        </label>
+        </div>
       </div>
       <div className="flex items-center gap-2">
-        {todo.dueDate && (
-          <span className="text-sm text-muted-foreground flex items-center gap-1">
-            <CalendarIcon className="h-3 w-3" />
-            {format(new Date(todo.dueDate), "MMM dd, yyyy")}
-          </span>
-        )}
         <DatePicker
           date={todo.dueDate ? new Date(todo.dueDate) : undefined}
           onDateChange={handleDateChange}
