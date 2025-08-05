@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import TodoItem from './TodoItem';
 import { showSuccess, showError } from '@/utils/toast';
-import { Paperclip, Mic, Link, ListFilter, Search } from "lucide-react";
-import { format } from 'date-fns'; // Import format from date-fns
+import { Mic, Link, ListFilter, Search } from "lucide-react"; // Removed Paperclip
+import { format } from 'date-fns';
 
 interface Todo {
   id: string;
@@ -24,26 +24,25 @@ const TodoList: React.FC = () => {
     return savedTodos ? JSON.parse(savedTodos) : [];
   });
   const [newTodoText, setNewTodoText] = useState<string>('');
-  const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
+  // Removed isFileDialogOpen state
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('none');
-  const [currentTime, setCurrentTime] = useState(new Date()); // New state for current time
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Removed fileInputRef
 
   useEffect(() => {
     localStorage.setItem('todos', JSON.stringify(todos));
   }, [todos]);
 
-  // Effect to update current time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-    return () => clearInterval(timer); // Cleanup on unmount
+    return () => clearInterval(timer);
   }, []);
 
   const addTodo = () => {
@@ -85,14 +84,7 @@ const TodoList: React.FC = () => {
     showSuccess(date ? "Due date set!" : "Due date cleared!");
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      showSuccess(`Selected file: ${files[0].name}`);
-      console.log("Selected file:", files[0]);
-    }
-    setIsFileDialogOpen(false);
-  };
+  // Removed handleFileSelect
 
   const handleOpenLink = () => {
     if (linkUrl.trim() === '') {
@@ -114,18 +106,15 @@ const TodoList: React.FC = () => {
     }
   };
 
-  // Filter and Sort Logic
   const filteredAndSortedTodos = useMemo(() => {
     let currentTodos = [...todos];
 
-    // 1. Filter
     if (searchTerm) {
       currentTodos = currentTodos.filter(todo =>
         todo.text.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // 2. Sort
     switch (sortOrder) {
       case 'alphabet-asc':
         currentTodos.sort((a, b) => a.text.localeCompare(b.text));
@@ -136,7 +125,7 @@ const TodoList: React.FC = () => {
       case 'dueDate-asc':
         currentTodos.sort((a, b) => {
           if (!a.dueDate && !b.dueDate) return 0;
-          if (!a.dueDate) return 1; // Undefined due dates go to the end
+          if (!a.dueDate) return 1;
           if (!b.dueDate) return -1;
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         });
@@ -151,8 +140,6 @@ const TodoList: React.FC = () => {
         break;
       case 'none':
       default:
-        // Default to creation order (which is implicit from useState initial load)
-        // For consistent behavior, we might want to sort by ID if 'none' means original creation order
         currentTodos.sort((a, b) => parseInt(a.id) - parseInt(b.id));
         break;
     }
@@ -199,14 +186,7 @@ const TodoList: React.FC = () => {
 
         <div className="flex justify-between items-center mb-6">
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm" onClick={() => {
-              setIsFileDialogOpen(true);
-              if (fileInputRef.current) {
-                fileInputRef.current.click();
-              }
-            }}>
-              <Paperclip className="h-4 w-4 mr-1" /> Attach File
-            </Button>
+            {/* Removed Attach File Button */}
             <Button variant="outline" size="sm" onClick={() => setIsAudioDialogOpen(true)}>
               <Mic className="h-4 w-4 mr-1" /> Audio Note
             </Button>
@@ -261,15 +241,7 @@ const TodoList: React.FC = () => {
         </div>
       </CardContent>
 
-      {/* Hidden file input */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileSelect}
-        className="hidden"
-        multiple={false}
-        accept="*/*"
-      />
+      {/* Removed Hidden file input */}
 
       {/* Audio Note Dialog */}
       <Dialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen}>
