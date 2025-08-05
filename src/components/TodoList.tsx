@@ -11,6 +11,7 @@ interface Todo {
   id: string;
   text: string;
   completed: boolean;
+  dueDate?: string; // Added dueDate
 }
 
 const TodoList: React.FC = () => {
@@ -39,6 +40,7 @@ const TodoList: React.FC = () => {
       id: Date.now().toString(),
       text: newTodoText.trim(),
       completed: false,
+      dueDate: undefined, // New todos start without a due date
     };
     setTodos([...todos, newTodo]);
     setNewTodoText('');
@@ -57,6 +59,15 @@ const TodoList: React.FC = () => {
   const deleteTodo = (id: string) => {
     setTodos(todos.filter((todo) => todo.id !== id));
     showSuccess("To-do deleted!");
+  };
+
+  const updateTodoDueDate = (id: string, date: string | undefined) => {
+    setTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, dueDate: date } : todo
+      )
+    );
+    showSuccess(date ? "Due date set!" : "Due date cleared!");
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,6 +150,7 @@ const TodoList: React.FC = () => {
                 todo={todo}
                 onToggleComplete={toggleComplete}
                 onDelete={deleteTodo}
+                onUpdateDueDate={updateTodoDueDate} // Pass the new update function
               />
             ))
           )}
